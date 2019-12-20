@@ -1,0 +1,158 @@
+"TonUtil.fif" include
+"Asm.fif" include
+
+Basechain constant wc
+
+PROGRAM{
+
+// automatically generated from `workshop.fc` 
+DECLPROC load_data
+DECLPROC send_message_back
+DECLPROC send_game_result
+load_data PROC:<{
+  c4 PUSH
+  CTOS
+  32 LDU
+  256 LDU
+  ENDS
+}>
+send_message_back PROC:<{
+  0 PUSHINT
+  DUP
+  24 PUSHINT
+  NEWC
+  6 STU
+  s0 s6 XCHG2
+  STSLICER
+  s0 s3 XCHG2
+  STGRAMS
+  s1 s4 XCHG
+  107 STU
+  32 STU
+  8 STU
+  ENDC
+  SWAP
+  SENDRAWMSG
+}>
+send_game_result PROC:<{
+  DUP
+  0 EQINT
+  IF:<{
+    DROP
+    1000000000 PUSHINT
+  }>
+  2 PUSHINT
+  send_message_back CALLDICT
+}>
+0 PROC:<{
+  SWAP
+  CTOS
+  4 LDU
+  NIP
+  LDMSGADDR
+  DROP
+  s2 PUSH
+  1000000000 PUSHINT
+  LESS
+  s3 PUSH
+  5000000000 PUSHINT
+  GREATER
+  OR
+  IFJMP:<{
+    NIP
+    NIP
+    0 PUSHINT
+    DUP
+    64 PUSHINT
+    send_message_back CALLDICT
+  }>
+  SWAP
+  32 LDU
+  NIP
+  0 PUSHINT
+  1 PUSHINT
+  s0 s2 XCHG
+  SDEMPTY
+  NOT
+  IF:<{
+    DROP
+  }>ELSE<{
+    NIP
+  }>
+  LTIME
+  ADDRAND
+  2 PUSHINT
+  RAND
+  0 PUSHINT
+  s2 s1 XCPU
+  EQUAL
+  IF:<{
+    NIP
+    s2 PUSH
+    49 MULCONST
+    100 PUSHINT
+    DIV
+    s1 s3 XCHG
+    ADD
+  }>ELSE<{
+    s3 POP
+  }>
+  s1 s2 XCHG
+  send_game_result CALLDICT
+}>
+-1 PROC:<{
+  NIP
+  NIP
+  load_data CALLDICT
+  s0 s2 XCHG
+  9 PUSHPOW2
+  LDSLICEX
+  DUP
+  HASHSU
+  s0 s2 s4 XC2PU
+  CHKSIGNU
+  34 THROWIFNOT
+  32 LDU
+  s1 s2 XCPU
+  EQUAL
+  33 THROWIFNOT
+  32 LDU
+  DROP
+  286331153 PUSHINT
+  EQUAL
+  IFJMP:<{
+    ACCEPT
+    INC
+    NEWC
+    32 STU
+    256 STU
+    ENDC
+    c4 POP
+  }>
+  2DROP
+}>
+
+}END>c
+// contract code
+
+<b 0 32 u, "denis.pk" file>B priv>pub B, b> // initial persistance data
+null
+// no libraries
+<b b{0011} s, 3 roll ref, rot ref, swap dict, b> // StateInit: code, data, libs
+
+dup hashu wc swap 2constant smartcont_addr // create address
+
+<b 0 32 u, x{11111111} s, b> // body
+dup hashu "denis.pk" file>B ed25519_sign_uint // create signature of body
+
+<b b{1000100} s, smartcont_addr addr, b{000010} s, 3 roll <s s, b{0} s, swap B, swap <s s, b> // enveloping message 
+
+// save to binary file
+2 boc+>B
+"eagle-and-tails.boc"
+B>file
+
+// about info
+."addr" smartcont_addr .addr
+."Non-bounceable address (for init): " smartcont_addr 7 .Addr cr
+."Bounceable address (for later access): " smartcont_addr 6 .Addr cr
